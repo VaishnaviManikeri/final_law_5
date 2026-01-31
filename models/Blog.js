@@ -26,7 +26,7 @@ const blogSchema = new mongoose.Schema(
       default: 'published',
     },
     coverImage: {
-      type: String,
+      type: String, // stores image path
     },
   },
   { timestamps: true }

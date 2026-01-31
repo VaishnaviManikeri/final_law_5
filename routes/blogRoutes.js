@@ -1,13 +1,16 @@
 const express = require('express');
 const Blog = require('../models/Blog');
 const upload = require('../middleware/uploadBlog');
+
 const router = express.Router();
 
 /* ================= PUBLIC ================= */
 
 // Get all published blogs
 router.get('/', async (req, res) => {
-  const blogs = await Blog.find({ status: 'published' }).sort({ createdAt: -1 });
+  const blogs = await Blog.find({ status: 'published' }).sort({
+    createdAt: -1,
+  });
   res.json(blogs);
 });
 
@@ -20,41 +23,53 @@ router.get('/:id', async (req, res) => {
 
 /* ================= ADMIN ================= */
 
-// Admin: all blogs
+// Get all blogs
 router.get('/admin/all', async (req, res) => {
   const blogs = await Blog.find().sort({ createdAt: -1 });
   res.json(blogs);
 });
 
-// CREATE blog with image
+// Create blog
 router.post('/', upload.single('coverImage'), async (req, res) => {
   const blog = await Blog.create({
-    ...req.body,
-    coverImage: req.file ? `/uploads/blogs/${req.file.filename}` : '',
+    title: req.body.title,
+    excerpt: req.body.excerpt,
+    content: req.body.content,
+    status: req.body.status,
+    coverImage: req.file
+      ? `/uploads/blogs/${req.file.filename}`
+      : null,
   });
 
   res.status(201).json(blog);
 });
 
-// UPDATE blog with image
+// Update blog
 router.put('/:id', upload.single('coverImage'), async (req, res) => {
-  const data = { ...req.body };
+  const updateData = {
+    title: req.body.title,
+    excerpt: req.body.excerpt,
+    content: req.body.content,
+    status: req.body.status,
+  };
 
   if (req.file) {
-    data.coverImage = `/uploads/blogs/${req.file.filename}`;
+    updateData.coverImage = `/uploads/blogs/${req.file.filename}`;
   }
 
-  const blog = await Blog.findByIdAndUpdate(req.params.id, data, {
-    new: true,
-  });
+  const blog = await Blog.findByIdAndUpdate(
+    req.params.id,
+    updateData,
+    { new: true }
+  );
 
   res.json(blog);
 });
 
-// DELETE blog
+// Delete blog
 router.delete('/:id', async (req, res) => {
   await Blog.findByIdAndDelete(req.params.id);
-  res.json({ message: 'Blog deleted' });
+  res.json({ message: 'Blog deleted successfully' });
 });
 
 module.exports = router;
