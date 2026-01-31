@@ -22,7 +22,7 @@ router.get('/admin/all', async (req, res) => {
 });
 
 // ✅ DELETE BLOG (ADMIN)
-router.delete('/admin/:id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
 
