@@ -8,7 +8,7 @@ async function createAdminDirect() {
   try {
     // Connect to MongoDB
     await mongoose.connect(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017/website_db'
+      process.env.MONGODB_URI || 'mongodb+srv://law:law5@cluster0.lgle1dy.mongodb.net/?appName=Cluster0'
     );
     console.log('✅ Connected to MongoDB');
     
