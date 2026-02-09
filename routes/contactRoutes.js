@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Contact = require('../models/Contact');
 const { sendContactNotification, sendAutoReply } = require('../services/emailService');
-const authMiddleware = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/auth');
 
 // @desc    Submit contact form
 // @route   POST /api/contact
