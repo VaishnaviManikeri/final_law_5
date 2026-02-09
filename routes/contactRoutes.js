@@ -1,54 +1,34 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const nodemailer = require("nodemailer");
+const {
+  submitContactForm,
+  getAllContacts,
+  getContactById,
+  deleteContact
+} = require('../controllers/contactController');
 
-router.post("/", async (req, res) => {
-  const { name, email, phone, message } = req.body;
+// If you have auth middleware, use it like this:
+// const { protect, admin } = require('../middleware/authMiddleware');
 
-  try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+// For now, let's create simple middleware functions
+const protect = (req, res, next) => {
+  // This is a placeholder - in production, implement proper JWT auth
+  console.log('Auth check - placeholder');
+  next();
+};
 
-    // Mail to Admin
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: "vaishnavimanikeri@gmail.com",
-      subject: "New Contact Form Submission",
-      html: `
-        <h3>New Contact</h3>
-        <p><b>Name:</b> ${name}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p><b>Phone:</b> ${phone}</p>
-        <p><b>Message:</b> ${message}</p>
-      `,
-    });
+const admin = (req, res, next) => {
+  // This is a placeholder - in production, check admin role
+  console.log('Admin check - placeholder');
+  next();
+};
 
-    // Auto Reply to User
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Thank You for Contacting Us",
-      html: `
-        <h2>Dear ${name},</h2>
-        <p>Thank you for reaching toward us.</p>
-        <p>We have received your message and will contact you shortly.</p>
+// Public routes
+router.post('/', submitContactForm);
 
-        <br/>
-
-        <b>Jadhavar Law College</b>
-      `,
-    });
-
-    res.status(200).json({ message: "Email sent successfully" });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: "Mail sending failed" });
-  }
-});
+// Admin routes (protected)
+router.get('/admin', protect, admin, getAllContacts);
+router.get('/admin/:id', protect, admin, getContactById);
+router.delete('/admin/:id', protect, admin, deleteContact);
 
 module.exports = router;
