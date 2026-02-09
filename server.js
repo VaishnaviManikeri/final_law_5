@@ -41,8 +41,8 @@ app.use('/api/announcements', require('./routes/announcementRoutes'));
 app.use('/api/careers', require('./routes/careerRoutes'));
 app.use('/api/blogs', require('./routes/blogRoutes'));
 // In server.js, add this line with other routes
-app.use('/api/contact', require('./routes/contactRoutes'));
-// ================= 404 =================
+// In server.js, add this line with other routes
+app.use('/api/contact', require('./routes/contactRoutes'));// ================= 404 =================
 app.use((req, res) => {
   res.status(404).json({ error: 'API route not found' });
 });
