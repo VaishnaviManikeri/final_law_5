@@ -1,11 +1,15 @@
 const nodemailer = require("nodemailer");
 
 exports.sendContact = async (req, res) => {
-  const { name, email, phone, message } = req.body;
 
   try {
+
+    const { name, email, phone, message } = req.body;
+
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS,
@@ -13,11 +17,11 @@ exports.sendContact = async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: email,
+      from: `"College Website" <${process.env.MAIL_USER}>`,
       to: "vaishnavimanikeri@gmail.com",
-      subject: "New College Contact Form Submission",
+      subject: "New Contact Form Submission",
       html: `
-        <h3>New Inquiry</h3>
+        <h2>New Inquiry</h2>
         <p><b>Name:</b> ${name}</p>
         <p><b>Email:</b> ${email}</p>
         <p><b>Phone:</b> ${phone}</p>
@@ -27,8 +31,8 @@ exports.sendContact = async (req, res) => {
 
     res.json({ success: true });
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Email failed" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Mail failed" });
   }
 };
