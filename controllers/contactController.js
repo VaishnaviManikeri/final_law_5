@@ -6,7 +6,7 @@ exports.sendContactMail = async (req, res) => {
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
+      port: Number(process.env.SMTP_PORT),
       secure: false,
       auth: {
         user: process.env.SMTP_USER,
@@ -14,8 +14,11 @@ exports.sendContactMail = async (req, res) => {
       },
     });
 
+    // 🔥 verify connection
+    await transporter.verify();
+
     await transporter.sendMail({
-      from: "Website <no-reply@law5.com>",
+      from: `"Website" <${process.env.SMTP_USER}>`,
       to: "vaishnavimanikeri@gmail.com",
       subject: "New Contact Enquiry",
       html: `
@@ -27,7 +30,7 @@ exports.sendContactMail = async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: "Jadhavar Law College <no-reply@law5.com>",
+      from: `"Jadhavar Law College" <${process.env.SMTP_USER}>`,
       to: email,
       subject: "Thank you for reaching toward us",
       html: `
@@ -41,7 +44,7 @@ exports.sendContactMail = async (req, res) => {
     res.json({ success: true });
 
   } catch (err) {
-    console.error(err);
+    console.error("SMTP ERROR:", err);
     res.status(500).json({ error: "Email failed" });
   }
 };
