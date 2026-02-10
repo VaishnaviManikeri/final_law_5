@@ -19,7 +19,7 @@ exports.sendContactMail = async (req, res) => {
     // Admin Mail
     await transporter.sendMail({
       from: `"Website Contact" <${process.env.EMAIL_USER}>`,
-      to: "vaishnavimanikeri@gmail.com",
+      to: "viraravi2206@gmail.com",
       subject: "New Contact Form Submission",
       html: `
         <h3>New Enquiry</h3>
