@@ -6,7 +6,7 @@ exports.sendContactMail = async (req, res) => {
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
+      port: 587,
       secure: false,
       auth: {
         user: process.env.SMTP_USER,
@@ -14,37 +14,36 @@ exports.sendContactMail = async (req, res) => {
       },
     });
 
-    // 🔥 verify connection
-    await transporter.verify();
-
+    // ADMIN MAIL
     await transporter.sendMail({
-      from: `"Website" <${process.env.SMTP_USER}>`,
+      from: "vaishnavimanikeri@gmail.com",
       to: "vaishnavimanikeri@gmail.com",
       subject: "New Contact Enquiry",
-      html: `
-        <b>Name:</b> ${name}<br/>
-        <b>Email:</b> ${email}<br/>
-        <b>Phone:</b> ${phone}<br/>
-        <b>Message:</b> ${message}
+      text: `
+Name: ${name}
+Email: ${email}
+Phone: ${phone}
+Message: ${message}
       `,
     });
 
+    // USER AUTO REPLY
     await transporter.sendMail({
-      from: `"Jadhavar Law College" <${process.env.SMTP_USER}>`,
+      from: "vaishnavimanikeri@gmail.com",
       to: email,
       subject: "Thank you for reaching toward us",
-      html: `
-        Hello ${name},<br/><br/>
-        Thank you for contacting us. We will reply shortly.<br/><br/>
-        Regards,<br/>
-        Jadhavar Law College
-      `,
+      text: `Hello ${name},
+
+Thank you for contacting us.
+We will reach you shortly.
+
+Jadhavar Law College`,
     });
 
     res.json({ success: true });
 
   } catch (err) {
     console.error("SMTP ERROR:", err);
-    res.status(500).json({ error: "Email failed" });
+    res.status(500).json({ error: err.message });
   }
 };
