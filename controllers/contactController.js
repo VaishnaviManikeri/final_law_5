@@ -5,48 +5,43 @@ exports.sendContactMail = async (req, res) => {
     const { name, email, phone, message } = req.body;
 
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     });
 
-    // Verify SMTP (DEBUG + SAFETY)
-    await transporter.verify();
-
-    // Mail to You
     await transporter.sendMail({
-      from: `"Website Contact" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_USER,
+      from: "Website <no-reply@law5.com>",
+      to: "vaishnavimanikeri@gmail.com",
       subject: "New Contact Enquiry",
       html: `
-        <h3>New Contact Message</h3>
-        <p><b>Name:</b> ${name}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p><b>Phone:</b> ${phone}</p>
-        <p><b>Message:</b> ${message}</p>
+        <b>Name:</b> ${name}<br/>
+        <b>Email:</b> ${email}<br/>
+        <b>Phone:</b> ${phone}<br/>
+        <b>Message:</b> ${message}
       `,
     });
 
-    // Auto Reply to User
     await transporter.sendMail({
-      from: `"Jadhavar Law College" <${process.env.EMAIL_USER}>`,
+      from: "Jadhavar Law College <no-reply@law5.com>",
       to: email,
       subject: "Thank you for reaching toward us",
       html: `
-        <p>Hello ${name},</p>
-        <p>Thank you for contacting us. We will reach you shortly.</p>
-        <br/>
-        <p>Regards,<br/>Jadhavar Law College</p>
+        Hello ${name},<br/><br/>
+        Thank you for contacting us. We will reply shortly.<br/><br/>
+        Regards,<br/>
+        Jadhavar Law College
       `,
     });
 
-    res.json({ success: true, message: "Email sent successfully" });
-  } catch (error) {
-    console.error("EMAIL ERROR:", error);
-    res.status(500).json({ error: "Email sending failed" });
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Email failed" });
   }
 };
