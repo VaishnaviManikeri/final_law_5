@@ -40,7 +40,7 @@ app.use('/api/gallery', require('./routes/galleryRoutes'));
 app.use('/api/announcements', require('./routes/announcementRoutes'));
 app.use('/api/careers', require('./routes/careerRoutes'));
 app.use('/api/blogs', require('./routes/blogRoutes'));
-app.use('/api/contact', require('./routes/contactRoutes')); // Add this line
+app.use('/api/contact', require('./routes/contactRoutes'));
 
 // ================= 404 =================
 app.use((req, res) => {
