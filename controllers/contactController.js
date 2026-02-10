@@ -4,25 +4,26 @@ exports.sendContactMail = async (req, res) => {
   try {
     const { name, email, phone, message } = req.body;
 
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: "All fields required" });
-    }
-
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
 
-    // Admin Mail
+    // Verify SMTP (DEBUG + SAFETY)
+    await transporter.verify();
+
+    // Mail to You
     await transporter.sendMail({
       from: `"Website Contact" <${process.env.EMAIL_USER}>`,
-      to: "viraravi2206@gmail.com",
-      subject: "New Contact Form Submission",
+      to: process.env.EMAIL_USER,
+      subject: "New Contact Enquiry",
       html: `
-        <h3>New Enquiry</h3>
+        <h3>New Contact Message</h3>
         <p><b>Name:</b> ${name}</p>
         <p><b>Email:</b> ${email}</p>
         <p><b>Phone:</b> ${phone}</p>
@@ -36,17 +37,16 @@ exports.sendContactMail = async (req, res) => {
       to: email,
       subject: "Thank you for reaching toward us",
       html: `
-        <h2>Hello ${name},</h2>
-        <p>Thank you for contacting us.</p>
-        <p>We received your message and will get back to you shortly.</p>
+        <p>Hello ${name},</p>
+        <p>Thank you for contacting us. We will reach you shortly.</p>
         <br/>
-        <b>Regards,<br/>Jadhavar Law College</b>
+        <p>Regards,<br/>Jadhavar Law College</p>
       `,
     });
 
-    res.json({ success: true, message: "Message sent successfully" });
+    res.json({ success: true, message: "Email sent successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("EMAIL ERROR:", error);
     res.status(500).json({ error: "Email sending failed" });
   }
 };
