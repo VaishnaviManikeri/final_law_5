@@ -41,7 +41,6 @@ app.use('/api/announcements', require('./routes/announcementRoutes'));
 app.use('/api/careers', require('./routes/careerRoutes'));
 app.use('/api/blogs', require('./routes/blogRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
-// Add this with other routes
 app.use('/api/admission', require('./routes/admissionRoutes'));
 // ================= 404 =================
 app.use((req, res) => {
