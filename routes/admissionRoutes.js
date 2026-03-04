@@ -13,5 +13,9 @@ router.get('/admin/:id', auth, admissionController.getAdmissionById);
 router.delete('/admin/:id', auth, admissionController.deleteAdmission);
 router.get('/admin/excel/download', auth, admissionController.downloadExcel);
 router.get('/admin/statistics', auth, admissionController.getStatistics);
+// Add this temporary test route
+router.get('/test', (req, res) => {
+  res.json({ message: 'Admission routes are working!' });
+});
 
 module.exports = router;

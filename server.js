@@ -15,9 +15,13 @@ const app = express();
 // ================= MIDDLEWARE =================
 app.use(
   cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: [
+      "http://localhost:5173",   // React/Vite local
+      "http://localhost:3000",   // React local
+      "https://yourfrontenddomain.com" // your deployed frontend
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
