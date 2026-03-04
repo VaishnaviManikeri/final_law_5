@@ -1,46 +1,34 @@
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const dotenv = require("dotenv");
-const connectDB = require("./config/database");
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const dotenv = require('dotenv');
+const connectDB = require('./config/database');
 
-/*
-|--------------------------------------------------------------------------
-| LOAD ENV VARIABLES
-|--------------------------------------------------------------------------
-*/
+// ================= LOAD ENV VARIABLES =================
 dotenv.config();
 
-/*
-|--------------------------------------------------------------------------
-| CONNECT DATABASE
-|--------------------------------------------------------------------------
-*/
+// ================= CONNECT DATABASE =================
 connectDB();
 
-/*
-|--------------------------------------------------------------------------
-| CREATE EXPRESS APP
-|--------------------------------------------------------------------------
-*/
 const app = express();
 
 /*
 |--------------------------------------------------------------------------
 | CORS CONFIGURATION
 |--------------------------------------------------------------------------
+| Allows requests from your frontend apps
 */
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173", 
-      "http://localhost:3000",
-      "https://yourfrontenddomain.com"
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',  // Vite frontend
+    'http://localhost:3000',  // React frontend
+    'https://final-law-5.onrender.com', // deployed frontend
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
 
 /*
 |--------------------------------------------------------------------------
@@ -52,19 +40,18 @@ app.use(express.urlencoded({ extended: true }));
 
 /*
 |--------------------------------------------------------------------------
-| STATIC FOLDERS
+| STATIC FILES
 |--------------------------------------------------------------------------
 */
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/exports", express.static(path.join(__dirname, "exports")));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 /*
 |--------------------------------------------------------------------------
 | ROOT TEST
 |--------------------------------------------------------------------------
 */
-app.get("/", (req, res) => {
-  res.send("Backend is running successfully 🚀");
+app.get('/', (req, res) => {
+  res.send('Backend is running successfully 🚀');
 });
 
 /*
@@ -72,14 +59,13 @@ app.get("/", (req, res) => {
 | API ROUTES
 |--------------------------------------------------------------------------
 */
-app.use("/api/test", require("./routes/testRoutes"));
-app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/gallery", require("./routes/galleryRoutes"));
-app.use("/api/announcements", require("./routes/announcementRoutes"));
-app.use("/api/careers", require("./routes/careerRoutes"));
-app.use("/api/blogs", require("./routes/blogRoutes"));
-app.use("/api/contact", require("./routes/contactRoutes"));
-app.use("/api/admissions", require("./routes/admissionRoutes"));
+app.use('/api/test', require('./routes/testRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/gallery', require('./routes/galleryRoutes'));
+app.use('/api/announcements', require('./routes/announcementRoutes'));
+app.use('/api/careers', require('./routes/careerRoutes'));
+app.use('/api/blogs', require('./routes/blogRoutes'));
+app.use('/api/contact', require('./routes/contactRoutes'));
 
 /*
 |--------------------------------------------------------------------------
@@ -88,7 +74,7 @@ app.use("/api/admissions", require("./routes/admissionRoutes"));
 */
 app.use((req, res) => {
   res.status(404).json({
-    error: "API route not found",
+    error: 'API route not found',
   });
 });
 
@@ -98,10 +84,10 @@ app.use((req, res) => {
 |--------------------------------------------------------------------------
 */
 app.use((err, req, res, next) => {
-  console.error("Server Error:", err);
+  console.error('Server Error:', err);
 
   res.status(500).json({
-    error: "Something went wrong!",
+    error: 'Something went wrong!',
     details: err.message,
   });
 });
