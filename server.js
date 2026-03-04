@@ -12,16 +12,22 @@ connectDB();
 
 const app = express();
 
+// ================= CORS CONFIG =================
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',   // React default
+    'http://localhost:5173',   // Vite React
+    'http://127.0.0.1:5173',
+    'https://www.shardulraojadhavarcollegeoflaw.com'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+
 // ================= MIDDLEWARE =================
-app.use(
-  cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
-
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,7 +47,8 @@ app.use('/api/announcements', require('./routes/announcementRoutes'));
 app.use('/api/careers', require('./routes/careerRoutes'));
 app.use('/api/blogs', require('./routes/blogRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
-app.use('/api/admission', require('./routes/admissionRoutes'));
+// Add this with other route imports
+app.use('/api/admissions', require('./routes/admissionRoutes'));
 // ================= 404 =================
 app.use((req, res) => {
   res.status(404).json({ error: 'API route not found' });
