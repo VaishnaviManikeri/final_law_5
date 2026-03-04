@@ -12,53 +12,28 @@ connectDB();
 
 const app = express();
 
-/*
-|--------------------------------------------------------------------------
-| CORS CONFIGURATION
-|--------------------------------------------------------------------------
-| Allows requests from your frontend apps
-*/
-const corsOptions = {
-  origin: [
-    'http://localhost:5173',  // Vite frontend
-    'http://localhost:3000',  // React frontend
-    'https://final-law-5.onrender.com', // deployed frontend
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
+// ================= MIDDLEWARE =================
+app.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
-app.use(cors(corsOptions));
 
-/*
-|--------------------------------------------------------------------------
-| BODY PARSER
-|--------------------------------------------------------------------------
-*/
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/*
-|--------------------------------------------------------------------------
-| STATIC FILES
-|--------------------------------------------------------------------------
-*/
+// ================= STATIC FILES =================
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-/*
-|--------------------------------------------------------------------------
-| ROOT TEST
-|--------------------------------------------------------------------------
-*/
+// ================= ROOT TEST =================
 app.get('/', (req, res) => {
   res.send('Backend is running successfully 🚀');
 });
 
-/*
-|--------------------------------------------------------------------------
-| API ROUTES
-|--------------------------------------------------------------------------
-*/
+// ================= ROUTES =================
 app.use('/api/test', require('./routes/testRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/gallery', require('./routes/galleryRoutes'));
@@ -66,39 +41,23 @@ app.use('/api/announcements', require('./routes/announcementRoutes'));
 app.use('/api/careers', require('./routes/careerRoutes'));
 app.use('/api/blogs', require('./routes/blogRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
-
-/*
-|--------------------------------------------------------------------------
-| 404 HANDLER
-|--------------------------------------------------------------------------
-*/
+app.use('/api/admission', require('./routes/admissionRoutes'));
+// ================= 404 =================
 app.use((req, res) => {
-  res.status(404).json({
-    error: 'API route not found',
-  });
+  res.status(404).json({ error: 'API route not found' });
 });
 
-/*
-|--------------------------------------------------------------------------
-| GLOBAL ERROR HANDLER
-|--------------------------------------------------------------------------
-*/
+// ================= ERROR HANDLER =================
 app.use((err, req, res, next) => {
-  console.error('Server Error:', err);
-
+  console.error(err.stack);
   res.status(500).json({
     error: 'Something went wrong!',
     details: err.message,
   });
 });
 
-/*
-|--------------------------------------------------------------------------
-| START SERVER
-|--------------------------------------------------------------------------
-*/
+// ================= START SERVER =================
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on port ${PORT}`)
+);
