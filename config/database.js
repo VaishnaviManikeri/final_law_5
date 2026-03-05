@@ -2,15 +2,15 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const mongoURI =
-      process.env.MONGO_URI ||
-      'mongodb+srv://law:law5@cluster0.lgle1dy.mongodb.net/lawfirm?retryWrites=true&w=majority';
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error('❌ MONGODB_URI is missing in .env file');
+    }
 
-    const conn = await mongoose.connect(mongoURI);
-
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error('❌ MongoDB Connection Error:', error.message);
+    await mongoose.connect(mongoUri); // <- no options needed
+    console.log('✅ Connected to MongoDB');
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err);
     process.exit(1);
   }
 };

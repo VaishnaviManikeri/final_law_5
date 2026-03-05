@@ -1,38 +1,56 @@
 const mongoose = require('mongoose');
 
 const admissionSchema = new mongoose.Schema({
-  // Academic Year
-  academicYearFrom: String,
-  academicYearTo: String,
+  // Course Details
+  academicYear: {
+    from: String,
+    to: String
+  },
   courseApplied: String,
-  medium: String,
+  medium: {
+    type: String,
+    enum: ['English', 'Marathi'],
+    default: 'English'
+  },
 
   // Personal Details
   surname: String,
   firstName: String,
-  fatherName: String,
+  fathersName: String,
   nameInDevnagari: String,
-  motherName: String,
-  sex: String,
-  previousName: String,
+  mothersName: String,
+  sex: {
+    type: String,
+    enum: ['Male', 'Female']
+  },
+  nameChange: String,
   dateOfBirth: Date,
-  maritalStatus: String,
+  maritalStatus: {
+    type: String,
+    enum: ['Married', 'Unmarried']
+  },
   bloodGroup: String,
   motherTongue: String,
   nationality: String,
   religion: String,
-  maharashtrian: String,
-  aadharCard: String,
+  maharashtrian: {
+    type: String,
+    enum: ['Maharashtrian', 'Non-Maharashtrian']
+  },
+  aadharCardNo: String,
   cast: String,
   category: String,
-  creamyLayer: String,
+  belongsToCreamyLayer: {
+    type: String,
+    enum: ['Yes', 'No']
+  },
   otherLanguages: String,
 
   // Address Details
   presentAddress: String,
-  presentPin: String,
+  presentPincode: String,
   permanentAddress: String,
-  permanentPin: String,
+  permanentPincode: String,
 
   // Contact Details
   studentContact: String,
@@ -40,7 +58,7 @@ const admissionSchema = new mongoose.Schema({
   phone2: String,
   email: String,
 
-  // Subjects & Last College
+  // Subjects Offered
   subjectsOffered: String,
   lastCollegeName: String,
   lastCollegeAddress: String,
@@ -49,73 +67,66 @@ const admissionSchema = new mongoose.Schema({
   academicRecords: [{
     srNo: Number,
     examination: String,
-    board: String,
+    boardUniversity: String,
     yearOfPassing: String,
     percentage: String
   }],
 
-  // Signatures and Dates
-  applicantSignature: String,
-  parentSignature: String,
-  date: Date,
-
-  // Office Use Only
-  officeName: String,
-  officeBranch: String,
-  officeAcademicYear: String,
-  officeClass: String,
-  officeDivision: String,
-  officeDate: Date,
-  officeSignature: String,
-  principalSignature: String,
-
-  // Undertakings
-  parentName: String,
-  studentName: String,
-  courseName: String,
-  
-  // Student Undertaking
-  studentUndertakingName: String,
-  studentClass: String,
-  studentBranch: String,
-  studentRollNo: String,
-
-  // Fees Schedule
-  totalFees: String,
-  registrationFees: String,
-  feesSchedule: [{
-    date: String,
-    amount: String
-  }],
-
-  // Submitted Documents
-  documentsSubmitted: [String],
-
-  // Important Note
-  documentsReceivedDate: Date,
+  // Declarations
   studentSignature: String,
+  parentSignature: String,
+  applicationDate: Date,
+
+  // Undertaking - Fees
+  feesUndertaking: {
+    parentGuardianName: String,
+    studentName: String,
+    studentFatherName: String,
+    admissionCourse: String,
+    agreeFees: Boolean
+  },
+
+  // Undertaking - Attendance
+  attendanceUndertaking: {
+    studentName: String,
+    fathersName: String,
+    studyingClass: String,
+    branch: String,
+    rollNo: String,
+    agreeAttendance: Boolean
+  },
+
+  // Documents Submitted
+  documentsSubmitted: {
+    gradCertificate: Boolean,
+    tenthMarklist: Boolean,
+    twelfthMarklist: Boolean,
+    leavingCertificate: Boolean,
+    migrationCertificate: Boolean,
+    gapAffidavit: Boolean,
+    passportPhotos: Boolean,
+    casteCertificate: Boolean,
+    marriageCertificate: Boolean,
+    aadharCard: Boolean
+  },
+
+  // Fees Payment Schedule
+  feesPayment: {
+    totalFees: String,
+    registrationFees: String,
+    installments: [{
+      amount: String,
+      dueDate: Date
+    }]
+  },
 
   // Metadata
   submittedAt: {
     type: Date,
     default: Date.now
   },
-  applicationNumber: {
-    type: String,
-    unique: true
-  }
-});
-
-// Generate application number before saving
-admissionSchema.pre('save', async function(next) {
-  if (!this.applicationNumber) {
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const count = await mongoose.model('Admission').countDocuments();
-    this.applicationNumber = `APP${year}${month}${(count + 1).toString().padStart(4, '0')}`;
-  }
-  next();
+  ipAddress: String,
+  userAgent: String
 });
 
 module.exports = mongoose.model('Admission', admissionSchema);
