@@ -37,7 +37,7 @@ app.use('/api/test', require('./routes/testRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/gallery', require('./routes/galleryRoutes'));
 app.use('/api/announcements', require('./routes/announcementRoutes'));
-app.use('/api/careers', require('./routes/careerRoutes'));
+app.use('/api/careers', require('./routes/careerRoutes')); // NEW
 app.use('/api/blogs', require('./routes/blogRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/admission', require('./routes/admissionRoutes')); // NEW ADMISSION ROUTE

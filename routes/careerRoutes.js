@@ -1,16 +1,27 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const careerController = require('../controllers/careerController');
-const auth = require('../middleware/auth');
 
-// Public routes
-router.get('/', careerController.getAllCareers);
-router.get('/:id', careerController.getCareerById);
+const auth = require("../middleware/auth");
 
-// Protected routes (require authentication)
-router.post('/', auth, careerController.createCareer);
-router.put('/:id', auth, careerController.updateCareer);
-router.delete('/:id', auth, careerController.deleteCareer);
-router.get('/admin/all', auth, careerController.getAllCareersAdmin);
+const {
+  createCareer,
+  getCareers,
+  getCareerById,
+  updateCareer,
+  deleteCareer,
+  getAllAdminCareers,
+} = require("../controllers/careerController");
+
+
+// PUBLIC
+router.get("/", getCareers);
+router.get("/:id", getCareerById);
+
+
+// ADMIN
+router.get("/admin/all", auth, getAllAdminCareers);
+router.post("/", auth, createCareer);
+router.put("/:id", auth, updateCareer);
+router.delete("/:id", auth, deleteCareer);
 
 module.exports = router;
