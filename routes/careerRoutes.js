@@ -7,9 +7,6 @@ const auth = require('../middleware/auth');
 router.get('/', careerController.getAllCareers);
 router.get('/:id', careerController.getCareerById);
 
-// Debug route (no auth required for debugging)
-router.get('/debug/all', careerController.debugCareers);
-
 // Protected routes (require authentication)
 router.post('/', auth, careerController.createCareer);
 router.put('/:id', auth, careerController.updateCareer);

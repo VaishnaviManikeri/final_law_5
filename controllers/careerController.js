@@ -3,76 +3,24 @@ const Career = require('../models/Career');
 // Create career
 exports.createCareer = async (req, res) => {
   try {
-    console.log('Received career data:', req.body);
-    
-    const careerData = { ...req.body };
+    const careerData = req.body;
     
     // Ensure requirements and responsibilities are arrays
-    if (careerData.requirements) {
-      if (typeof careerData.requirements === 'string') {
-        careerData.requirements = [careerData.requirements];
-      } else if (!Array.isArray(careerData.requirements)) {
-        careerData.requirements = [];
-      }
-      // Filter out empty strings
-      careerData.requirements = careerData.requirements.filter(req => req && req.trim() !== '');
-    } else {
-      careerData.requirements = [];
+    if (typeof careerData.requirements === 'string') {
+      careerData.requirements = [careerData.requirements];
     }
-    
-    if (careerData.responsibilities) {
-      if (typeof careerData.responsibilities === 'string') {
-        careerData.responsibilities = [careerData.responsibilities];
-      } else if (!Array.isArray(careerData.responsibilities)) {
-        careerData.responsibilities = [];
-      }
-      // Filter out empty strings
-      careerData.responsibilities = careerData.responsibilities.filter(res => res && res.trim() !== '');
-    } else {
-      careerData.responsibilities = [];
+    if (typeof careerData.responsibilities === 'string') {
+      careerData.responsibilities = [careerData.responsibilities];
     }
     
     // Handle salaryRange
     if (careerData.salaryRange) {
-      if (careerData.salaryRange.min === '' || careerData.salaryRange.min === null || careerData.salaryRange.min === undefined) {
-        careerData.salaryRange.min = undefined;
-      }
-      if (careerData.salaryRange.max === '' || careerData.salaryRange.max === null || careerData.salaryRange.max === undefined) {
-        careerData.salaryRange.max = undefined;
-      }
-    }
-    
-    // Ensure required fields
-    if (!careerData.position || !careerData.department || !careerData.location || 
-        !careerData.description || !careerData.applicationDeadline) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields',
-        message: 'Position, department, location, description, and application deadline are required'
-      });
-    }
-
-    // Validate requirements and responsibilities have at least one item
-    if (careerData.requirements.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        message: 'At least one requirement is required'
-      });
-    }
-    
-    if (careerData.responsibilities.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        message: 'At least one responsibility is required'
-      });
+      if (careerData.salaryRange.min === '') careerData.salaryRange.min = undefined;
+      if (careerData.salaryRange.max === '') careerData.salaryRange.max = undefined;
     }
     
     const career = new Career(careerData);
     await career.save();
-    
-    console.log('Career created successfully:', career._id);
     
     res.status(201).json({
       success: true,
@@ -119,7 +67,7 @@ exports.getAllCareers = async (req, res) => {
       applicationDeadline: { $gte: now }
     })
     .sort({ applicationDeadline: 1, createdAt: -1 })
-    .select('-__v');
+    .select('-__v'); // Exclude version key
     
     console.log(`Found ${careers.length} active careers with future deadlines`);
     
@@ -175,21 +123,14 @@ exports.getCareerById = async (req, res) => {
 // Update career
 exports.updateCareer = async (req, res) => {
   try {
-    const updates = { ...req.body };
+    const updates = req.body;
     
     // Handle arrays
-    if (updates.requirements) {
-      if (typeof updates.requirements === 'string') {
-        updates.requirements = [updates.requirements];
-      }
-      updates.requirements = updates.requirements.filter(req => req && req.trim() !== '');
+    if (updates.requirements && typeof updates.requirements === 'string') {
+      updates.requirements = [updates.requirements];
     }
-    
-    if (updates.responsibilities) {
-      if (typeof updates.responsibilities === 'string') {
-        updates.responsibilities = [updates.responsibilities];
-      }
-      updates.responsibilities = updates.responsibilities.filter(res => res && res.trim() !== '');
+    if (updates.responsibilities && typeof updates.responsibilities === 'string') {
+      updates.responsibilities = [updates.responsibilities];
     }
     
     updates.updatedAt = Date.now();
@@ -285,36 +226,6 @@ exports.getAllCareersAdmin = async (req, res) => {
       success: false,
       error: 'Server error',
       message: error.message
-    });
-  }
-};
-
-// Debug endpoint - to check careers
-exports.debugCareers = async (req, res) => {
-  try {
-    const allCareers = await Career.find();
-    const now = new Date();
-    const activeCareers = await Career.find({ isActive: true });
-    const futureCareers = await Career.find({
-      isActive: true,
-      applicationDeadline: { $gte: now }
-    });
-    
-    res.json({
-      success: true,
-      debug: {
-        allCareersCount: allCareers.length,
-        activeCareersCount: activeCareers.length,
-        futureCareersCount: futureCareers.length,
-        allCareers: allCareers,
-        currentTime: now,
-        databaseConnected: true
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
     });
   }
 };
