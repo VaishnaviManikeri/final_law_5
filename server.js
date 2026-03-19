@@ -15,9 +15,15 @@ const app = express();
 // ================= MIDDLEWARE =================
 app.use(
   cors({
-    origin: '*',
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://shardulraojadhavarcollegeoflaw.com',
+      'https://shardulraojadhavarcollegeoflaw.com/'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   })
 );
 
@@ -30,6 +36,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ================= ROOT TEST =================
 app.get('/', (req, res) => {
   res.send('Backend is running successfully 🚀');
+});
+
+// ================= ✅ PING ROUTE =================
+app.get('/ping', (req, res) => {
+  res.send('✅ Server is alive');
 });
 
 // ================= ROUTES =================
