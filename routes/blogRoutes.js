@@ -6,11 +6,18 @@ const path = require('path');
 
 const router = express.Router();
 
+// Helper function to calculate reading time
+function calculateReadingTime(content) {
+  const wordsPerMinute = 200;
+  const wordCount = content.trim().split(/\s+/).length;
+  return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
+}
+
 /* =====================================================
-   ADMIN ROUTES (KEEP THESE FIRST)
+   ADMIN ROUTES
    ===================================================== */
 
-// ✅ GET ALL BLOGS (ADMIN)
+// GET ALL BLOGS (ADMIN)
 router.get('/admin/all', async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
@@ -21,7 +28,7 @@ router.get('/admin/all', async (req, res) => {
   }
 });
 
-// ✅ DELETE BLOG (ADMIN ONLY)
+// DELETE BLOG (ADMIN ONLY)
 router.delete('/admin/:id', async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
@@ -30,7 +37,6 @@ router.delete('/admin/:id', async (req, res) => {
       return res.status(404).json({ error: 'Blog not found' });
     }
 
-    // delete image if exists
     if (blog.coverImage) {
       const imagePath = path.join(__dirname, '..', blog.coverImage);
       if (fs.existsSync(imagePath)) {
@@ -39,7 +45,6 @@ router.delete('/admin/:id', async (req, res) => {
     }
 
     await Blog.findByIdAndDelete(req.params.id);
-
     res.json({ message: 'Blog deleted successfully' });
   } catch (err) {
     console.error(err);
@@ -47,36 +52,11 @@ router.delete('/admin/:id', async (req, res) => {
   }
 });
 
-// ✅ UPDATE BLOG STATUS (ADMIN)
-router.patch('/admin/:id/status', async (req, res) => {
-  try {
-    const { status } = req.body;
-    if (!['draft', 'published'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
-    }
-    
-    const blog = await Blog.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-    
-    if (!blog) {
-      return res.status(404).json({ error: 'Blog not found' });
-    }
-    
-    res.json(blog);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to update blog status' });
-  }
-});
-
 /* =====================================================
    PUBLIC ROUTES
    ===================================================== */
 
-// ✅ GET ALL PUBLISHED BLOGS
+// GET ALL PUBLISHED BLOGS
 router.get('/', async (req, res) => {
   try {
     const blogs = await Blog.find({ status: 'published' }).sort({
@@ -88,10 +68,19 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ GET SINGLE BLOG
-router.get('/:id', async (req, res) => {
+// GET SINGLE BLOG BY ID OR SLUG
+router.get('/:identifier', async (req, res) => {
   try {
-    const blog = await Blog.findById(req.params.id);
+    const identifier = req.params.identifier;
+    let blog;
+
+    // Check if identifier is a valid ObjectId or slug
+    if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
+      blog = await Blog.findById(identifier);
+    } else {
+      blog = await Blog.findOne({ slug: identifier, status: 'published' });
+    }
+
     if (!blog) {
       return res.status(404).json({ error: 'Blog not found' });
     }
@@ -107,14 +96,32 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', upload.single('coverImage'), async (req, res) => {
   try {
+    let slug = req.body.slug;
+    if (!slug && req.body.title) {
+      slug = req.body.title
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, '-');
+    }
+
+    // Check if slug already exists
+    const existingBlog = await Blog.findOne({ slug });
+    if (existingBlog) {
+      slug = `${slug}-${Date.now()}`;
+    }
+
+    const readingTime = calculateReadingTime(req.body.content);
+
     const blog = await Blog.create({
       title: req.body.title,
+      slug: slug,
       excerpt: req.body.excerpt,
       content: req.body.content,
       status: req.body.status || 'published',
-      coverImage: req.file
-        ? `/uploads/blogs/${req.file.filename}`
-        : null,
+      coverImage: req.file ? `/uploads/blogs/${req.file.filename}` : null,
+      metaTitle: req.body.metaTitle || req.body.title,
+      metaDescription: req.body.metaDescription || req.body.excerpt,
+      readingTime: readingTime,
     });
 
     res.status(201).json(blog);
@@ -135,25 +142,25 @@ router.put('/:id', upload.single('coverImage'), async (req, res) => {
       excerpt: req.body.excerpt,
       content: req.body.content,
       status: req.body.status,
+      metaTitle: req.body.metaTitle,
+      metaDescription: req.body.metaDescription,
     };
 
+    if (req.body.slug) {
+      updateData.slug = req.body.slug;
+    }
+
     if (req.file) {
-      // Delete old image if exists
-      const oldBlog = await Blog.findById(req.params.id);
-      if (oldBlog && oldBlog.coverImage) {
-        const oldImagePath = path.join(__dirname, '..', oldBlog.coverImage);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
-      }
       updateData.coverImage = `/uploads/blogs/${req.file.filename}`;
     }
 
-    const blog = await Blog.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    );
+    if (req.body.content) {
+      updateData.readingTime = calculateReadingTime(req.body.content);
+    }
+
+    const blog = await Blog.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+    });
 
     if (!blog) {
       return res.status(404).json({ error: 'Blog not found' });
