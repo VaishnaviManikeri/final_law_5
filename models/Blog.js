@@ -1,69 +1,71 @@
 const mongoose = require('mongoose');
 
-const blogSchema = new mongoose.Schema(
-  {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    slug: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    excerpt: {
-      type: String,
-      required: true,
-      maxlength: 300,
-    },
-    content: {
-      type: String,
-      required: true,
-    },
-    author: {
-      type: String,
-      default: 'Admin',
-    },
-    status: {
-      type: String,
-      enum: ['draft', 'published'],
-      default: 'published',
-    },
-    coverImage: {
-      type: String,
-    },
-    metaTitle: {
-      type: String,
-      trim: true,
-    },
-    metaDescription: {
-      type: String,
-      trim: true,
-      maxlength: 160,
-    },
-    readingTime: {
-      type: Number,
-      default: 5,
-    },
+const blogSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true
   },
-  { timestamps: true }
-);
+  slug: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  metaTitle: {
+    type: String,
+    trim: true
+  },
+  metaDescription: {
+    type: String,
+    trim: true
+  },
+  author: {
+    type: String,
+    required: true,
+    default: 'Admin'
+  },
+  content: {
+    type: String,
+    required: true
+  },
+  featuredImage: {
+    type: String,
+    default: ''
+  },
+  readingTime: {
+    type: String,
+    default: '5 min read'
+  },
+  tags: [{
+    type: String
+  }],
+  views: {
+    type: Number,
+    default: 0
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'published'],
+    default: 'published'
+  },
+  publishedAt: {
+    type: Date,
+    default: Date.now
+  }
+}, {
+  timestamps: true
+});
 
-// Pre-save middleware to generate slug if not provided
+// Generate slug from title before saving
 blogSchema.pre('save', function(next) {
-  if (!this.slug && this.title) {
+  if (this.isModified('title') && !this.slug) {
     this.slug = this.title
       .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, '-');
-  }
-  if (!this.metaTitle) {
-    this.metaTitle = this.title;
-  }
-  if (!this.metaDescription) {
-    this.metaDescription = this.excerpt;
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
   }
   next();
 });
