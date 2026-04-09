@@ -47,6 +47,31 @@ router.delete('/admin/:id', async (req, res) => {
   }
 });
 
+// ✅ UPDATE BLOG STATUS (ADMIN)
+router.patch('/admin/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['draft', 'published'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    const blog = await Blog.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    
+    if (!blog) {
+      return res.status(404).json({ error: 'Blog not found' });
+    }
+    
+    res.json(blog);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update blog status' });
+  }
+});
+
 /* =====================================================
    PUBLIC ROUTES
    ===================================================== */
@@ -94,6 +119,7 @@ router.post('/', upload.single('coverImage'), async (req, res) => {
 
     res.status(201).json(blog);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to create blog' });
   }
 });
@@ -112,6 +138,14 @@ router.put('/:id', upload.single('coverImage'), async (req, res) => {
     };
 
     if (req.file) {
+      // Delete old image if exists
+      const oldBlog = await Blog.findById(req.params.id);
+      if (oldBlog && oldBlog.coverImage) {
+        const oldImagePath = path.join(__dirname, '..', oldBlog.coverImage);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
       updateData.coverImage = `/uploads/blogs/${req.file.filename}`;
     }
 
@@ -127,6 +161,7 @@ router.put('/:id', upload.single('coverImage'), async (req, res) => {
 
     res.json(blog);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to update blog' });
   }
 });
