@@ -1,175 +1,164 @@
 const express = require('express');
-const Blog = require('../models/Blog');
-const upload = require('../middleware/uploadBlog');
-const fs = require('fs');
-const path = require('path');
-
 const router = express.Router();
+const Blog = require('../models/Blog');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
-// Helper function to calculate reading time
-function calculateReadingTime(content) {
-  const wordsPerMinute = 200;
-  const wordCount = content.trim().split(/\s+/).length;
-  return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
-}
+// Configure multer for image upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/blogs';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
 
-/* =====================================================
-   ADMIN ROUTES
-   ===================================================== */
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
-// GET ALL BLOGS (ADMIN)
+// GET all published blogs (public)
+router.get('/', async (req, res) => {
+  try {
+    const blogs = await Blog.find({ status: 'published' })
+      .sort({ publishedAt: -1 })
+      .select('title slug author content featuredImage readingTime publishedAt views');
+    res.json(blogs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET single blog by slug (public)
+router.get('/:slug', async (req, res) => {
+  try {
+    const blog = await Blog.findOne({ slug: req.params.slug, status: 'published' });
+    if (!blog) {
+      return res.status(404).json({ error: 'Blog not found' });
+    }
+    // Increment views
+    blog.views += 1;
+    await blog.save();
+    res.json(blog);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET all blogs for admin
 router.get('/admin/all', async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
     res.json(blogs);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch blogs' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// DELETE BLOG (ADMIN ONLY)
-router.delete('/admin/:id', async (req, res) => {
+// GET single blog by ID for admin
+router.get('/admin/:id', async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
-
     if (!blog) {
       return res.status(404).json({ error: 'Blog not found' });
     }
+    res.json(blog);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    if (blog.coverImage) {
-      const imagePath = path.join(__dirname, '..', blog.coverImage);
+// CREATE blog
+router.post('/', upload.single('featuredImage'), async (req, res) => {
+  try {
+    const blogData = JSON.parse(req.body.data);
+    
+    // Generate slug if not provided
+    if (!blogData.slug && blogData.title) {
+      blogData.slug = blogData.title
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+    
+    if (req.file) {
+      blogData.featuredImage = `/uploads/blogs/${req.file.filename}`;
+    }
+    
+    const blog = new Blog(blogData);
+    await blog.save();
+    res.status(201).json(blog);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// UPDATE blog
+router.put('/:id', upload.single('featuredImage'), async (req, res) => {
+  try {
+    const blogData = JSON.parse(req.body.data);
+    
+    if (req.file) {
+      // Delete old image if exists
+      const oldBlog = await Blog.findById(req.params.id);
+      if (oldBlog && oldBlog.featuredImage) {
+        const oldImagePath = path.join(__dirname, '..', oldBlog.featuredImage);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      blogData.featuredImage = `/uploads/blogs/${req.file.filename}`;
+    }
+    
+    const blog = await Blog.findByIdAndUpdate(req.params.id, blogData, { new: true });
+    if (!blog) {
+      return res.status(404).json({ error: 'Blog not found' });
+    }
+    res.json(blog);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE blog
+router.delete('/:id', async (req, res) => {
+  try {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) {
+      return res.status(404).json({ error: 'Blog not found' });
+    }
+    
+    // Delete featured image if exists
+    if (blog.featuredImage) {
+      const imagePath = path.join(__dirname, '..', blog.featuredImage);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
       }
     }
-
-    await Blog.findByIdAndDelete(req.params.id);
+    
+    await blog.deleteOne();
     res.json({ message: 'Blog deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to delete blog' });
-  }
-});
-
-/* =====================================================
-   PUBLIC ROUTES
-   ===================================================== */
-
-// GET ALL PUBLISHED BLOGS
-router.get('/', async (req, res) => {
-  try {
-    const blogs = await Blog.find({ status: 'published' }).sort({
-      createdAt: -1,
-    });
-    res.json(blogs);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch blogs' });
-  }
-});
-
-// GET SINGLE BLOG BY ID OR SLUG
-router.get('/:identifier', async (req, res) => {
-  try {
-    const identifier = req.params.identifier;
-    let blog;
-
-    // Check if identifier is a valid ObjectId or slug
-    if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
-      blog = await Blog.findById(identifier);
-    } else {
-      blog = await Blog.findOne({ slug: identifier, status: 'published' });
-    }
-
-    if (!blog) {
-      return res.status(404).json({ error: 'Blog not found' });
-    }
-    res.json(blog);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch blog' });
-  }
-});
-
-/* =====================================================
-   CREATE BLOG
-   ===================================================== */
-
-router.post('/', upload.single('coverImage'), async (req, res) => {
-  try {
-    let slug = req.body.slug;
-    if (!slug && req.body.title) {
-      slug = req.body.title
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .replace(/\s+/g, '-');
-    }
-
-    // Check if slug already exists
-    const existingBlog = await Blog.findOne({ slug });
-    if (existingBlog) {
-      slug = `${slug}-${Date.now()}`;
-    }
-
-    const readingTime = calculateReadingTime(req.body.content);
-
-    const blog = await Blog.create({
-      title: req.body.title,
-      slug: slug,
-      excerpt: req.body.excerpt,
-      content: req.body.content,
-      status: req.body.status || 'published',
-      coverImage: req.file ? `/uploads/blogs/${req.file.filename}` : null,
-      metaTitle: req.body.metaTitle || req.body.title,
-      metaDescription: req.body.metaDescription || req.body.excerpt,
-      readingTime: readingTime,
-    });
-
-    res.status(201).json(blog);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create blog' });
-  }
-});
-
-/* =====================================================
-   UPDATE BLOG
-   ===================================================== */
-
-router.put('/:id', upload.single('coverImage'), async (req, res) => {
-  try {
-    const updateData = {
-      title: req.body.title,
-      excerpt: req.body.excerpt,
-      content: req.body.content,
-      status: req.body.status,
-      metaTitle: req.body.metaTitle,
-      metaDescription: req.body.metaDescription,
-    };
-
-    if (req.body.slug) {
-      updateData.slug = req.body.slug;
-    }
-
-    if (req.file) {
-      updateData.coverImage = `/uploads/blogs/${req.file.filename}`;
-    }
-
-    if (req.body.content) {
-      updateData.readingTime = calculateReadingTime(req.body.content);
-    }
-
-    const blog = await Blog.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-    });
-
-    if (!blog) {
-      return res.status(404).json({ error: 'Blog not found' });
-    }
-
-    res.json(blog);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to update blog' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
