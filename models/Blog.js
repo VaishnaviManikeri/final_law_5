@@ -3,12 +3,11 @@ const mongoose = require('mongoose');
 const blogSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
+    required: [true, 'Title is required'],
     trim: true
   },
   slug: {
     type: String,
-    required: true,
     unique: true,
     trim: true,
     lowercase: true
@@ -23,12 +22,12 @@ const blogSchema = new mongoose.Schema({
   },
   author: {
     type: String,
-    required: true,
+    required: [true, 'Author is required'],
     default: 'Admin'
   },
   content: {
     type: String,
-    required: true
+    required: [true, 'Content is required']
   },
   featuredImage: {
     type: String,
@@ -58,21 +57,18 @@ const blogSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate slug from title before saving - FIXED
+// Generate slug from title before saving
 blogSchema.pre('save', function(next) {
-  try {
-    // Only generate slug if title is modified and slug is empty
-    if (this.isModified('title') && (!this.slug || this.slug === '')) {
-      this.slug = this.title
-        .toLowerCase()
-        .replace(/[^a-zA-Z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-    }
-    next();
-  } catch (error) {
-    next(error);
+  // Only generate slug if slug is empty or not provided
+  if ((!this.slug || this.slug === '') && this.title) {
+    this.slug = this.title
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
   }
+  next();
 });
 
 module.exports = mongoose.model('Blog', blogSchema);
