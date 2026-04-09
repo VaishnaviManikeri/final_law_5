@@ -90,19 +90,38 @@ router.get('/admin/:id', async (req, res) => {
   }
 });
 
-// CREATE blog
+// CREATE blog - FIXED
 router.post('/', upload.single('featuredImage'), async (req, res) => {
   try {
     console.log('Received blog creation request');
     console.log('Body data:', req.body.data);
     console.log('File:', req.file);
     
+    // Check if data exists
+    if (!req.body.data) {
+      return res.status(400).json({ error: 'No blog data provided' });
+    }
+    
     let blogData;
     try {
       blogData = JSON.parse(req.body.data);
+      console.log('Parsed blog data:', blogData);
     } catch (parseError) {
       console.error('Error parsing blog data:', parseError);
-      return res.status(400).json({ error: 'Invalid blog data format' });
+      return res.status(400).json({ error: 'Invalid blog data format: ' + parseError.message });
+    }
+    
+    // Validate required fields
+    if (!blogData.title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    
+    if (!blogData.author) {
+      return res.status(400).json({ error: 'Author is required' });
+    }
+    
+    if (!blogData.content) {
+      return res.status(400).json({ error: 'Content is required' });
     }
     
     // Generate slug if not provided
@@ -114,21 +133,23 @@ router.post('/', upload.single('featuredImage'), async (req, res) => {
         .replace(/^-|-$/g, '');
     }
     
-    // Check if slug already exists
-    const existingBlog = await Blog.findOne({ slug: blogData.slug });
+    // Check if slug already exists and make it unique if needed
+    let existingBlog = await Blog.findOne({ slug: blogData.slug });
     if (existingBlog) {
-      // Append timestamp to make slug unique
       blogData.slug = blogData.slug + '-' + Date.now();
+      console.log('Slug already exists, new slug:', blogData.slug);
     }
     
+    // Add featured image if uploaded
     if (req.file) {
       blogData.featuredImage = `/uploads/blogs/${req.file.filename}`;
     }
     
+    // Create and save blog
     const blog = new Blog(blogData);
-    await blog.save();
-    console.log('Blog created successfully:', blog._id);
-    res.status(201).json(blog);
+    const savedBlog = await blog.save();
+    console.log('Blog created successfully:', savedBlog._id);
+    res.status(201).json(savedBlog);
   } catch (error) {
     console.error('Error creating blog:', error);
     res.status(500).json({ error: error.message });
@@ -139,6 +160,10 @@ router.post('/', upload.single('featuredImage'), async (req, res) => {
 router.put('/:id', upload.single('featuredImage'), async (req, res) => {
   try {
     console.log('Received blog update request for ID:', req.params.id);
+    
+    if (!req.body.data) {
+      return res.status(400).json({ error: 'No blog data provided' });
+    }
     
     let blogData;
     try {
@@ -161,7 +186,11 @@ router.put('/:id', upload.single('featuredImage'), async (req, res) => {
       blogData.featuredImage = `/uploads/blogs/${req.file.filename}`;
     }
     
-    const blog = await Blog.findByIdAndUpdate(req.params.id, blogData, { new: true });
+    const blog = await Blog.findByIdAndUpdate(req.params.id, blogData, { 
+      new: true,
+      runValidators: true 
+    });
+    
     if (!blog) {
       return res.status(404).json({ error: 'Blog not found' });
     }
