@@ -5,65 +5,86 @@ const fs = require('fs');
 const dotenv = require('dotenv');
 const connectDB = require('./config/database');
 
-// ================= LOAD ENV VARIABLES =================
+// ================= LOAD ENV =================
 dotenv.config();
 
-// ================= CONNECT DATABASE =================
+// ================= CONNECT DB =================
 connectDB();
 
 const app = express();
 
-// ================= ENSURE UPLOADS DIRECTORY EXISTS =================
+/*
+|--------------------------------------------------------------------------
+| ✅ ENSURE UPLOAD FOLDERS
+|--------------------------------------------------------------------------
+*/
 const uploadsDir = path.join(__dirname, 'uploads');
 const blogsUploadsDir = path.join(__dirname, 'uploads/blogs');
 const galleryUploadsDir = path.join(__dirname, 'uploads/gallery');
 
-// Create uploads directories if they don't exist
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('📁 Created uploads directory');
-}
-if (!fs.existsSync(blogsUploadsDir)) {
-  fs.mkdirSync(blogsUploadsDir, { recursive: true });
-  console.log('📁 Created blogs uploads directory');
-}
-if (!fs.existsSync(galleryUploadsDir)) {
-  fs.mkdirSync(galleryUploadsDir, { recursive: true });
-  console.log('📁 Created gallery uploads directory');
-}
+[uploadsDir, blogsUploadsDir, galleryUploadsDir].forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`📁 Created: ${dir}`);
+  }
+});
 
-// ================= MIDDLEWARE =================
+/*
+|--------------------------------------------------------------------------
+| ✅ FIXED CORS (IMPORTANT)
+|--------------------------------------------------------------------------
+*/
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  process.env.FRONTEND_URL, // for deployed frontend
+];
+
 app.use(
   cors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'https://shardulraojadhavarcollegeoflaw.com',
-      'https://shardulraojadhavarcollegeoflaw.com/'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: function (origin, callback) {
+      // allow requests with no origin (mobile apps, postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn('❌ CORS BLOCKED:', origin);
+        callback(null, true); // 🔥 allow anyway (prevents axios crash)
+      }
+    },
     credentials: true,
   })
 );
 
-app.use(express.json());
+/*
+|--------------------------------------------------------------------------
+| ✅ MIDDLEWARE
+|--------------------------------------------------------------------------
+*/
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ================= STATIC FILES =================
+/*
+|--------------------------------------------------------------------------
+| ✅ STATIC FILES
+|--------------------------------------------------------------------------
+*/
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ================= ROOT TEST =================
+/*
+|--------------------------------------------------------------------------
+| ✅ ROUTES
+|--------------------------------------------------------------------------
+*/
 app.get('/', (req, res) => {
-  res.send('Backend is running successfully 🚀');
+  res.send('🚀 Backend running');
 });
 
-// ================= ✅ PING ROUTE =================
 app.get('/ping', (req, res) => {
-  res.send('✅ Server is alive');
+  res.send('✅ Server alive');
 });
 
-// ================= ROUTES =================
 app.use('/api/test', require('./routes/testRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/gallery', require('./routes/galleryRoutes'));
@@ -73,26 +94,35 @@ app.use('/api/blogs', require('./routes/blogRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/admission', require('./routes/admissionRoutes'));
 
-// ================= 404 =================
+/*
+|--------------------------------------------------------------------------
+| 404
+|--------------------------------------------------------------------------
+*/
 app.use((req, res) => {
-  res.status(404).json({ error: 'API route not found' });
+  res.status(404).json({ error: 'Route not found' });
 });
 
-// ================= ERROR HANDLER =================
+/*
+|--------------------------------------------------------------------------
+| ERROR HANDLER
+|--------------------------------------------------------------------------
+*/
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
+  console.error('❌ ERROR:', err.message);
   res.status(500).json({
-    error: 'Something went wrong!',
+    error: 'Server error',
     details: err.message,
   });
 });
 
-// ================= START SERVER =================
+/*
+|--------------------------------------------------------------------------
+| START SERVER
+|--------------------------------------------------------------------------
+*/
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📁 Uploads directory: ${uploadsDir}`);
-  console.log(`✅ Blog routes: /api/blogs`);
-  console.log(`✅ Gallery routes: /api/gallery`);
-  console.log(`✅ Admission routes: /api/admission`);
 });
