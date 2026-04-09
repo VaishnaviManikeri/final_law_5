@@ -58,16 +58,21 @@ const blogSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate slug from title before saving
+// Generate slug from title before saving - FIXED
 blogSchema.pre('save', function(next) {
-  if (this.isModified('title') && !this.slug) {
-    this.slug = this.title
-      .toLowerCase()
-      .replace(/[^a-zA-Z0-9]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+  try {
+    // Only generate slug if title is modified and slug is empty
+    if (this.isModified('title') && (!this.slug || this.slug === '')) {
+      this.slug = this.title
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 });
 
 module.exports = mongoose.model('Blog', blogSchema);
