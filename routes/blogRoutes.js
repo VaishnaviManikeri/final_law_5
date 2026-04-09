@@ -43,6 +43,7 @@ router.get('/', async (req, res) => {
       .select('title slug author content featuredImage readingTime publishedAt views');
     res.json(blogs);
   } catch (error) {
+    console.error('Error fetching blogs:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -59,6 +60,7 @@ router.get('/:slug', async (req, res) => {
     await blog.save();
     res.json(blog);
   } catch (error) {
+    console.error('Error fetching blog:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -69,6 +71,7 @@ router.get('/admin/all', async (req, res) => {
     const blogs = await Blog.find().sort({ createdAt: -1 });
     res.json(blogs);
   } catch (error) {
+    console.error('Error fetching admin blogs:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -82,6 +85,7 @@ router.get('/admin/:id', async (req, res) => {
     }
     res.json(blog);
   } catch (error) {
+    console.error('Error fetching blog by ID:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -89,7 +93,17 @@ router.get('/admin/:id', async (req, res) => {
 // CREATE blog
 router.post('/', upload.single('featuredImage'), async (req, res) => {
   try {
-    const blogData = JSON.parse(req.body.data);
+    console.log('Received blog creation request');
+    console.log('Body data:', req.body.data);
+    console.log('File:', req.file);
+    
+    let blogData;
+    try {
+      blogData = JSON.parse(req.body.data);
+    } catch (parseError) {
+      console.error('Error parsing blog data:', parseError);
+      return res.status(400).json({ error: 'Invalid blog data format' });
+    }
     
     // Generate slug if not provided
     if (!blogData.slug && blogData.title) {
@@ -100,14 +114,23 @@ router.post('/', upload.single('featuredImage'), async (req, res) => {
         .replace(/^-|-$/g, '');
     }
     
+    // Check if slug already exists
+    const existingBlog = await Blog.findOne({ slug: blogData.slug });
+    if (existingBlog) {
+      // Append timestamp to make slug unique
+      blogData.slug = blogData.slug + '-' + Date.now();
+    }
+    
     if (req.file) {
       blogData.featuredImage = `/uploads/blogs/${req.file.filename}`;
     }
     
     const blog = new Blog(blogData);
     await blog.save();
+    console.log('Blog created successfully:', blog._id);
     res.status(201).json(blog);
   } catch (error) {
+    console.error('Error creating blog:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -115,7 +138,15 @@ router.post('/', upload.single('featuredImage'), async (req, res) => {
 // UPDATE blog
 router.put('/:id', upload.single('featuredImage'), async (req, res) => {
   try {
-    const blogData = JSON.parse(req.body.data);
+    console.log('Received blog update request for ID:', req.params.id);
+    
+    let blogData;
+    try {
+      blogData = JSON.parse(req.body.data);
+    } catch (parseError) {
+      console.error('Error parsing blog data:', parseError);
+      return res.status(400).json({ error: 'Invalid blog data format' });
+    }
     
     if (req.file) {
       // Delete old image if exists
@@ -124,6 +155,7 @@ router.put('/:id', upload.single('featuredImage'), async (req, res) => {
         const oldImagePath = path.join(__dirname, '..', oldBlog.featuredImage);
         if (fs.existsSync(oldImagePath)) {
           fs.unlinkSync(oldImagePath);
+          console.log('Deleted old image:', oldImagePath);
         }
       }
       blogData.featuredImage = `/uploads/blogs/${req.file.filename}`;
@@ -133,8 +165,10 @@ router.put('/:id', upload.single('featuredImage'), async (req, res) => {
     if (!blog) {
       return res.status(404).json({ error: 'Blog not found' });
     }
+    console.log('Blog updated successfully:', blog._id);
     res.json(blog);
   } catch (error) {
+    console.error('Error updating blog:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -152,12 +186,15 @@ router.delete('/:id', async (req, res) => {
       const imagePath = path.join(__dirname, '..', blog.featuredImage);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
+        console.log('Deleted image:', imagePath);
       }
     }
     
     await blog.deleteOne();
+    console.log('Blog deleted successfully:', blog._id);
     res.json({ message: 'Blog deleted successfully' });
   } catch (error) {
+    console.error('Error deleting blog:', error);
     res.status(500).json({ error: error.message });
   }
 });
