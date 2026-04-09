@@ -8,7 +8,7 @@ const fs = require('fs');
 // Configure multer for image upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'uploads/blogs';
+    const uploadDir = path.join(__dirname, '../uploads/blogs');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -93,39 +93,59 @@ router.get('/admin/:id', async (req, res) => {
 // CREATE blog - FIXED
 router.post('/', upload.single('featuredImage'), async (req, res) => {
   try {
-    console.log('Received blog creation request');
-    console.log('Body data:', req.body.data);
-    console.log('File:', req.file);
-    
-    // Check if data exists
-    if (!req.body.data) {
-      return res.status(400).json({ error: 'No blog data provided' });
+    console.log('=== CREATE BLOG REQUEST ===');
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Has file:', !!req.file);
+    if (req.file) {
+      console.log('File details:', {
+        originalname: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size
+      });
     }
     
     let blogData;
-    try {
-      blogData = JSON.parse(req.body.data);
-      console.log('Parsed blog data:', blogData);
-    } catch (parseError) {
-      console.error('Error parsing blog data:', parseError);
-      return res.status(400).json({ error: 'Invalid blog data format: ' + parseError.message });
+    
+    // Check if data is coming as JSON string or as form fields
+    if (req.body.data) {
+      // Data is stringified JSON
+      try {
+        blogData = JSON.parse(req.body.data);
+        console.log('Parsed from data field:', blogData);
+      } catch (parseError) {
+        console.error('Error parsing blog data:', parseError);
+        return res.status(400).json({ error: 'Invalid blog data format: ' + parseError.message });
+      }
+    } else {
+      // Data is sent as individual form fields
+      blogData = {
+        title: req.body.title,
+        slug: req.body.slug,
+        metaTitle: req.body.metaTitle,
+        metaDescription: req.body.metaDescription,
+        author: req.body.author,
+        content: req.body.content,
+        readingTime: req.body.readingTime,
+        status: req.body.status
+      };
+      console.log('Parsed from individual fields:', blogData);
     }
     
     // Validate required fields
-    if (!blogData.title) {
+    if (!blogData.title || !blogData.title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
     }
     
-    if (!blogData.author) {
+    if (!blogData.author || !blogData.author.trim()) {
       return res.status(400).json({ error: 'Author is required' });
     }
     
-    if (!blogData.content) {
+    if (!blogData.content || blogData.content.trim() === '') {
       return res.status(400).json({ error: 'Content is required' });
     }
     
     // Generate slug if not provided
-    if (!blogData.slug && blogData.title) {
+    if (!blogData.slug || blogData.slug.trim() === '') {
       blogData.slug = blogData.title
         .toLowerCase()
         .replace(/[^a-zA-Z0-9]/g, '-')
@@ -145,6 +165,16 @@ router.post('/', upload.single('featuredImage'), async (req, res) => {
       blogData.featuredImage = `/uploads/blogs/${req.file.filename}`;
     }
     
+    // Set default reading time if not provided
+    if (!blogData.readingTime) {
+      blogData.readingTime = '5 min read';
+    }
+    
+    // Set default status if not provided
+    if (!blogData.status) {
+      blogData.status = 'published';
+    }
+    
     // Create and save blog
     const blog = new Blog(blogData);
     const savedBlog = await blog.save();
@@ -159,18 +189,32 @@ router.post('/', upload.single('featuredImage'), async (req, res) => {
 // UPDATE blog
 router.put('/:id', upload.single('featuredImage'), async (req, res) => {
   try {
-    console.log('Received blog update request for ID:', req.params.id);
-    
-    if (!req.body.data) {
-      return res.status(400).json({ error: 'No blog data provided' });
-    }
+    console.log('=== UPDATE BLOG REQUEST ===');
+    console.log('Blog ID:', req.params.id);
     
     let blogData;
-    try {
-      blogData = JSON.parse(req.body.data);
-    } catch (parseError) {
-      console.error('Error parsing blog data:', parseError);
-      return res.status(400).json({ error: 'Invalid blog data format' });
+    
+    // Check if data is coming as JSON string or as form fields
+    if (req.body.data) {
+      try {
+        blogData = JSON.parse(req.body.data);
+        console.log('Parsed from data field:', blogData);
+      } catch (parseError) {
+        console.error('Error parsing blog data:', parseError);
+        return res.status(400).json({ error: 'Invalid blog data format' });
+      }
+    } else {
+      blogData = {
+        title: req.body.title,
+        slug: req.body.slug,
+        metaTitle: req.body.metaTitle,
+        metaDescription: req.body.metaDescription,
+        author: req.body.author,
+        content: req.body.content,
+        readingTime: req.body.readingTime,
+        status: req.body.status
+      };
+      console.log('Parsed from individual fields:', blogData);
     }
     
     if (req.file) {
