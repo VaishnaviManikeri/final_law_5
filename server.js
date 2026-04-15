@@ -37,20 +37,19 @@ const galleryUploadsDir = path.join(__dirname, 'uploads/gallery');
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  process.env.FRONTEND_URL, // for deployed frontend
+  process.env.FRONTEND_URL,
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin (mobile apps, postman)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         console.warn('❌ CORS BLOCKED:', origin);
-        callback(null, true); // 🔥 allow anyway (prevents axios crash)
+        callback(null, true); // allow anyway
       }
     },
     credentials: true,
@@ -83,6 +82,15 @@ app.get('/', (req, res) => {
 
 app.get('/ping', (req, res) => {
   res.send('✅ Server alive');
+});
+
+// ✅ NEW: Hostinger status API
+app.get('/api/status', (req, res) => {
+  res.json({
+    status: 'success',
+    message: '🚀 Hostinger backend running',
+    timestamp: new Date(),
+  });
 });
 
 app.use('/api/test', require('./routes/testRoutes'));
@@ -121,7 +129,7 @@ app.use((err, req, res, next) => {
 | START SERVER
 |--------------------------------------------------------------------------
 */
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
